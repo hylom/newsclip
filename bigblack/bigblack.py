@@ -13,53 +13,75 @@ import cgi
 import sys
 import os
 import os.path
-import ConfigParser
-import marshal
 
-VERSION = "0.1.0"
-VERSION_DATE = VERSION + " 06/16/2009"
-VERSION_SPLIT = tuple(VERSION.split('.'))
+class Http(object):
+    """BigBlack http render module"""
+    def __init__(self, bb):
+        self._bb = bb
 
-
-class BigBlack(object):
-    """BigBlack main class"""
-
-    def __init__(self):
-        """Creates the BackBlack object"""
-        self._init_plugins()
-
-#### plugin system
-    def _init_plugins(self):
-        self._cfg_reader = None
-        self._config = {}
-
-    def regist_configreader(self, cls):
-        self._cfg_reader = cls.__call__(self)
-
-
-#### built-in configuration system
-    def _builtin_load_config(self, config_dir=""):
-        """load config file.
-
-        @param configfile: config file's directory
-        @type configfile: string
+    def header(self, ctype="text/html; charset=utf-8"):
         """
-        if config_dir:
-            sys.path.insert(0, config_dir)
+        return HTTP header.
 
-        from config import config as bb_cfg
-        return bb_cfg
+        @param ctype="text.html": content-type string.
+        @type ctype: string
+        """
+        return "Content-type: %s\n" %(ctype)
 
-    def get_config(self, key, default=None):
-        return self._config.get(key, default)
+ 
+class Html(object):
+    """BigBlack html render module"""
+    def __init__(self, bb):
+        self._bb = bb
 
-    def _load_config(self):
-        if self._cfg_reader:
-            self._config = self._cfg_reader.load_config()
-        else:
-            self._config = self._builtin_load_config()
+    def body(self, content):
+        """return <body>%s</body>"""
+        return """<body>
+%s
+</body>
+""" % content
+        
+    def header(self, **headers):
+        """
+        return HTML header (<html><head></head>
 
-#### env/parameter access functions
+        @param headers={}: header parameters.
+        @type headers: dict
+        """
+        header_string = "<html>\n<head>\n"
+
+        for key in headers:
+            header_string += "  <%s>%s</%s>\n" % (key,headers[key],key)
+
+        header_string += "</head>\n<body>"
+        return header_string
+
+    def footer(self):
+        """
+        return HTML footer (</html>)
+        """
+        return "</html>"
+
+    def redirection(self, url):
+        """
+        return redirection HTML code.
+
+        @param url: redirection url
+        @type url: string
+        """
+        return """<html>
+  <head>
+    <meta http-equiv="refresh" content="0;url=%s">
+  </head>
+</html>""" %(url)
+
+
+class Cgi(object):
+    """BigBlack cgi utilities module"""
+    def __init__(self, bb):
+        self._bb = bb
+        self._form = cgi.FieldStorage
+
     def param(self, key):
         """return CGI parameter.
 
@@ -83,7 +105,7 @@ class BigBlack(object):
         """
         pathinfo = os.environ.get("PATH_INFO", "")
         if os.name == "nt":
-            scriptname = getScriptname()
+            scriptname = self.script_name()
             if pathinfo.startswith(scriptname):
                 pathinfo = pathinfo[len(scriptname):]
         return pathinfo
@@ -94,86 +116,67 @@ class BigBlack(object):
         """
         return os.environ.get("SCRIPT_NAME", "")
 
-#### HTTP/HTML manipulation functions
-    def html_body(self, content=""):
-        return """<body>
-%s
-</body>
-""" % content
-        
-    def http_header(self, ctype="text/html; charset=utf-8"):
-        """
-        return HTTP header.
 
-        @param ctype="text.html": content-type string.
-        @type ctype: string
-        """
-        return "Content-type: %s\n" %(ctype)
+class Config(object):
+    """BigBlack configuration module"""
+    def __init__(self, bb):
+        self._bb = bb
+        from config import config as bb_cfg
+        self._config = bb_cfg
 
-    def html_header(self, **headers):
-        """
-        return HTML header.
+    def value(self, key, default=None):
+        """return config variable's value"""
+        return self._config.get(key, default)
 
-        @param headers={}: header parameters.
-        @type headers: dict
-        """
-        header_string = "<html>\n<head>\n"
 
-        for key in headers:
-            header_string += "  <%s>%s</%s>\n" % (key,headers[key],key)
+class Dispatch(object):
+    """BigBlack dispatcher class"""
+    def __init__(self, bb):
+        self._bb = bb
 
-        header_string += "</head>\n<body>"
-        return header_string
-
-    def html_footer(self):
-        """
-        return HTML footer.
-        """
-        return "</body></html>"
-
-    def html_redirection(self, url):
-        """
-        return redirection HTML code.
-
-        @param url: redirection url
-        @type url: string
-        """
-        return """<html>
-  <head>
-    <meta http-equiv="refresh" content="0;url=%s">
-  </head>
-</html>""" %(url)
-
-#### cgi exection dispatcher functions
-    def run(self):
-        self._load_config()
-
-        if os.environ.get("METHOD") in ("GET", "POST"):
-            return self.dispatch()
-        else:
-            return self.standalone()
-
-    def standalone(self):
-        self.root()
-
-    def dispatch(self):
-        p = self.path_info()
+    def go(self):
+        p = self._bb.cgi.path_info()
         pathspec = p.split("/")
         if len(pathspec) > 1:
             func = pathspec[1]
             try:
-                f = getattr(self, func)
+                f = getattr(self._bb, func)
                 f()
             except AttributeError:
-                self.fallback()
+                self._bb.fallback()
         else:
-            self.root()
+            self._bb.root()
+
+
+class BigBlack(object):
+    """BigBlack main class"""
+
+    def __init__(self):
+        """Creates the BackBlack object"""
+        self.html = Html(self)
+        self.http = Http(self)
+        self.cgi = Cgi(self)
+        self.config = Config(self)
+        self.dispatch = Dispatch(self)
+
+#### cgi exection dispatcher functions
+    def run(self):
+        if os.environ.get("METHOD") in ("GET", "POST"):
+            return self.dispatch.go()
+        else:
+            return self.standalone()
+
+    def fallback(self):
+        self.root()
+
+    def standalone(self):
+        self.root()
 
     def root(self):
-        print self.http_header()
-        print self.html_header(title="BigBlack initial page")
+        print self.http.header()
+        print self.html.header(title="BigBlack initial page")
         print """<h1>BigBlack initial page</h1>
 <p>This is BigBlack initial root page.</p>
 """
-        print self.html_footer()
+        print self.html.footer()
 

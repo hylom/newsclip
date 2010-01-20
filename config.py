@@ -5,4 +5,3 @@ config = {}
 
 config["storage_dir"] = "~/Sites/bb2/test"
 
-
