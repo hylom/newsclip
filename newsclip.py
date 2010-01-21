@@ -25,6 +25,7 @@
 # THE SOFTWARE.
 #
 """newsclip.py - news clipping system"""
+import cgitb; cgitb.enable()
 
 from bigblack.bigblack import BigBlack
 
@@ -34,6 +35,10 @@ class NewsClipApp(BigBlack):
         "NewsClipApp constructor"
         BigBlack.__init__(self)
 
+    def root(self): 
+        print self.http.header()
+        t = self.view.render("login.html", dict())
+        print t
 
 if __name__ == '__main__':
     app = NewsClipApp()

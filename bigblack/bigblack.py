@@ -14,6 +14,10 @@ import sys
 import os
 import os.path
 
+from mako.template import Template
+from mako.lookup import TemplateLookup
+from mako.exceptions import RichTraceback
+
 class Http(object):
     """BigBlack http render module"""
     def __init__(self, bb):
@@ -124,9 +128,40 @@ class Config(object):
         from config import config as bb_cfg
         self._config = bb_cfg
 
-    def value(self, key, default=None):
+    def get_value(self, key, default=None):
         """return config variable's value"""
         return self._config.get(key, default)
+
+    def get_dir(self, key, default=None):
+        if not self._config.has_key(key):
+            return default
+        p = os.path.expanduser(self._config[key])
+        return os.path.abspath(p)
+        
+
+class View(object):
+    """BigBlack View module"""
+    def __init__(self, bb):
+        self._bb = bb
+
+    def render(self, template_name, stash):
+        tpath = self._bb.config.get_dir("template_dir", None)
+        tl = TemplateLookup(directories=[tpath],
+                            input_encoding="utf-8",
+                            output_encoding="utf-8",
+                            default_filters=['decode.utf8'])
+#                            format_exceptions=True)
+
+        t = tl.get_template(template_name)
+        try:
+            return t.render(**stash)
+        except:
+            traceback = RichTraceback()
+            for (filename, lineno, function, line) in traceback.traceback:
+                print "File %s, line %s, in %s" % (filename, lineno, function)
+                print line, "\n"
+            print "%s: %s" % (str(traceback.error.__class__.__name__), traceback.error)
+            sys.exit(-1)
 
 
 class Dispatch(object):
@@ -158,6 +193,7 @@ class BigBlack(object):
         self.cgi = Cgi(self)
         self.config = Config(self)
         self.dispatch = Dispatch(self)
+        self.view = View(self)
 
 #### cgi exection dispatcher functions
     def run(self):
