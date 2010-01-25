@@ -84,7 +84,7 @@ class Cgi(object):
     """BigBlack cgi utilities module"""
     def __init__(self, bb):
         self._bb = bb
-        self._form = cgi.FieldStorage
+        self._form = cgi.FieldStorage()
 
     def param(self, key):
         """return CGI parameter.
@@ -98,10 +98,10 @@ class Cgi(object):
 
         #FIXME: if form's value is large file?
         try:
-            return self._form.getvalue(key)
+            return self._form.getfirst(key)
         except AttributeError:
             self._form = cgi.FieldStorage()
-            return self._form.getvalue(key)
+            return self._form.getfirst(key)
 
     def path_info(self):
         """
@@ -120,6 +120,9 @@ class Cgi(object):
         """
         return os.environ.get("SCRIPT_NAME", "")
 
+    def new_dict(self):
+        return dict(self._form)
+
 
 class Config(object):
     """BigBlack configuration module"""
@@ -133,10 +136,13 @@ class Config(object):
         return self._config.get(key, default)
 
     def get_dir(self, key, default=None):
-        if not self._config.has_key(key):
+        if key not in self._config:
             return default
         p = os.path.expanduser(self._config[key])
         return os.path.abspath(p)
+
+    def new_dict(self):
+        return dict(self._config)
         
 
 class View(object):
@@ -153,8 +159,11 @@ class View(object):
 #                            format_exceptions=True)
 
         t = tl.get_template(template_name)
+        vars = self._bb.config.new_dict()
+        vars.update(stash)
+        vars["DEBUG_MSG"] = self._bb.debugger.debug_string()
         try:
-            return t.render(**stash)
+            return t.render(**vars)
         except:
             traceback = RichTraceback()
             for (filename, lineno, function, line) in traceback.traceback:
@@ -162,6 +171,28 @@ class View(object):
                 print line, "\n"
             print "%s: %s" % (str(traceback.error.__class__.__name__), traceback.error)
             sys.exit(-1)
+
+
+class NullDebugger(object):
+    def __init__(self, bb):
+        self._bb = bb
+
+    def debug_string(self):
+        return ""
+
+class Debugger(NullDebugger):
+    def debug_string(self):
+        params = self._bb.cgi.new_dict()
+        p = ["%s: %s<br/>" % (key, params[key]) for key in params]
+        str = """
+<hr/>
+This is debug message.
+<hr/>
+ Parameters:<br/>
+%s
+<hr/>
+"""
+        return str % "\n".join(p)
 
 
 class Dispatch(object):
@@ -175,7 +206,7 @@ class Dispatch(object):
         if len(pathspec) > 1:
             func = pathspec[1]
             try:
-                f = getattr(self._bb, func)
+                f = getattr(self._bb, "h_" + func)
                 f()
             except AttributeError:
                 self._bb.fallback()
@@ -194,6 +225,8 @@ class BigBlack(object):
         self.config = Config(self)
         self.dispatch = Dispatch(self)
         self.view = View(self)
+        self.debugger = NullDebugger(self)
+
 
 #### cgi exection dispatcher functions
     def run(self):
@@ -203,9 +236,12 @@ class BigBlack(object):
             return self.standalone()
 
     def fallback(self):
-        self.root()
+        self.fallback()
 
     def standalone(self):
+        self.root()
+
+    def fallback(self):
         self.root()
 
     def root(self):

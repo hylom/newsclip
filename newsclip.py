@@ -27,17 +27,28 @@
 """newsclip.py - news clipping system"""
 import cgitb; cgitb.enable()
 
-from bigblack.bigblack import BigBlack
+from bigblack.bigblack import BigBlack, Debugger
 
 class NewsClipApp(BigBlack):
     "news clipping system main application class"
     def __init__(self):
         "NewsClipApp constructor"
         BigBlack.__init__(self)
+        self.debugger = Debugger(self)
+
+    def _login(self):
+        print self.http.header()
+        print self.html.header()
+        print """hogehoge"""
+        print self.html.footer()
 
     def root(self): 
+        if self.cgi.param("login") == "1":
+            self._login()
+            return
+
         print self.http.header()
-        t = self.view.render("login.html", dict())
+        t = self.view.render("login.html", dict(title="newsclip login"))
         print t
 
 if __name__ == '__main__':

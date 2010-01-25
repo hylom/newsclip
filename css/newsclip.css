@@ -1,0 +1,11 @@
+/* newsclip.css */
+
+
+/* login page */
+body.login h1 {
+    text-align: center;
+}
+
+div.login_form {
+    text-align: center;
+}
