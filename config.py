@@ -3,7 +3,7 @@
 
 config = {}
 
-config["storage_dir"] = "~hylom/Sites/bb2/test"
+config["storage_dir"] = "~hylom/Sites/newsclip/db"
 config["template_dir"] = "~hylom/Sites/newsclip/template"
 config["app_root"] = "http://localhost/~hylom/newsclip/newsclip.py"
 config["root_css"] = "http://localhost/~hylom/newsclip/css/newsclip.css"

@@ -2,16 +2,12 @@
 <%include file="header.html"/> 
 
 <body class="login">
-  <h1>newsclip login</h1>
+  <h1>newsclip setup</h1>
 
-  % if error:
-  <div>login failed</div>
-  % endif
-
-  <div class="login_form">
-    <form action="${app_root}" method="post">
-      <input type="hidden" name="return_to" value="/" />
-      <input type="hidden" name="login" value="1" />
+  <h2>Register Login Informations</h2>
+  <div class="form">
+    <form action="${app_root}/setup" method="post">
+      <input type="hidden" name="setup" value="1" />
       <div>
 	ログイン名：<br/>
 	<input type="text" name="loginname" id="loginname" VALUE="" />
@@ -20,7 +16,7 @@
 	パスワード：<br/>
 	<input type="password" name="passwd" />
       </div>
-      <input type="submit" value="ログイン" />
+      <input type="submit" value="登録" />
     </form>
   </div>
 

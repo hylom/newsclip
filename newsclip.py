@@ -25,9 +25,12 @@
 # THE SOFTWARE.
 #
 """newsclip.py - news clipping system"""
+import cgi
 import cgitb; cgitb.enable()
 
 from bigblack.bigblack import BigBlack, Debugger
+from bigblack.session import Session
+from bigblack.fbdb import FbDb
 
 class NewsClipApp(BigBlack):
     "news clipping system main application class"
@@ -35,17 +38,45 @@ class NewsClipApp(BigBlack):
         "NewsClipApp constructor"
         BigBlack.__init__(self)
         self.debugger = Debugger(self)
+        db = FbDb(self.config.get_dir("storage_dir"))
+        self._db = db
+        self.session = Session(db)
 
     def _login(self):
-        print self.http.header()
-        print self.html.header()
-        print """hogehoge"""
-        print self.html.footer()
+        uname = self.cgi.getfirst("loginname")
+        passwd = self.cgi.getfirst("passwd")
+        if self._db.exists("users"):
+            pass #if uname and passwd:
+        else:
+            self._setup()
 
-    def root(self): 
-        if self.cgi.param("login") == "1":
-            self._login()
+    def _setup(self):
+        print self.http.header()
+        t = self.view.render("setup.html", dict(title="newsclip setup"))
+        print t
+
+    def h_setup(self):
+        if self.cgi.getfirst("setup") != "1":
+            print self.http.header()
+            print self.html.redirect("")
             return
+
+        uname = self.cgi.getfirst("loginname")
+        passwd = self.cgi.getfirst("passwd")
+        if uname and passwd:
+            self._db.create_db("users")
+            self._db.create("users", uname, passwd)
+
+        print self.http.header()
+        print self.html.redirect("")
+        return
+
+    def root(self):
+        if not self._db.exists("users"):
+            return self._setup()
+
+        if self.cgi.getfirst("login") == "1":
+            return self._login()
 
         print self.http.header()
         t = self.view.render("login.html", dict(title="newsclip login"))

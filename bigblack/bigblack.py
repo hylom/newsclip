@@ -66,7 +66,21 @@ class Html(object):
         """
         return "</html>"
 
-    def redirection(self, url):
+    def redirect(self, url):
+        """
+        return redirection HTML code.
+
+        @param url: redirection url
+        @type url: string
+        """
+        dest = self._bb.config.get_value("app_root") + url
+        return """<html>
+  <head>
+    <meta http-equiv="refresh" content="0;url=%s">
+  </head>
+</html>""" %(dest)
+
+    def external_redirect(self, url):
         """
         return redirection HTML code.
 
@@ -86,7 +100,7 @@ class Cgi(object):
         self._bb = bb
         self._form = cgi.FieldStorage()
 
-    def param(self, key):
+    def getfirst(self, key):
         """return CGI parameter.
 
         @param key: name of parameter
@@ -102,6 +116,23 @@ class Cgi(object):
         except AttributeError:
             self._form = cgi.FieldStorage()
             return self._form.getfirst(key)
+
+    def getlist(self, key):
+        """return CGI parameter.
+
+        @param key: name of parameter
+        @type key: string
+        """
+
+        if os.environ.get("METHOD") in ("GET", "POST"):
+            return None;
+
+        #FIXME: if form's value is large file?
+        try:
+            return self._form.getlist(key)
+        except AttributeError:
+            self._form = cgi.FieldStorage()
+            return self._form.getlist(key)
 
     def path_info(self):
         """
@@ -181,6 +212,13 @@ class NullDebugger(object):
         return ""
 
 class Debugger(NullDebugger):
+    def __init__(self, bb):
+        NullDebugger.__init__(self, bb)
+        self._msg = ""
+    
+    def add_msg(self, str):
+        self._msg = self._msg + str
+
     def debug_string(self):
         params = self._bb.cgi.new_dict()
         p = ["%s: %s<br/>" % (key, params[key]) for key in params]
@@ -192,7 +230,7 @@ This is debug message.
 %s
 <hr/>
 """
-        return str % "\n".join(p)
+        return str % "\n".join(p) + self._msg
 
 
 class Dispatch(object):
@@ -204,9 +242,10 @@ class Dispatch(object):
         p = self._bb.cgi.path_info()
         pathspec = p.split("/")
         if len(pathspec) > 1:
-            func = pathspec[1]
+            func = "h_" + pathspec[1]
+            self._bb.debugger.add_msg("(" + func + ")")
             try:
-                f = getattr(self._bb, "h_" + func)
+                f = getattr(self._bb, func)
                 f()
             except AttributeError:
                 self._bb.fallback()
@@ -230,7 +269,7 @@ class BigBlack(object):
 
 #### cgi exection dispatcher functions
     def run(self):
-        if os.environ.get("METHOD") in ("GET", "POST"):
+        if os.environ.get("REQUEST_METHOD") in ("GET", "POST"):
             return self.dispatch.go()
         else:
             return self.standalone()
