@@ -66,33 +66,6 @@ class Html(object):
         """
         return "</html>"
 
-    def redirect(self, url):
-        """
-        return redirection HTML code.
-
-        @param url: redirection url
-        @type url: string
-        """
-        dest = self._bb.config.get_value("app_root") + url
-        return """<html>
-  <head>
-    <meta http-equiv="refresh" content="0;url=%s">
-  </head>
-</html>""" %(dest)
-
-    def external_redirect(self, url):
-        """
-        return redirection HTML code.
-
-        @param url: redirection url
-        @type url: string
-        """
-        return """<html>
-  <head>
-    <meta http-equiv="refresh" content="0;url=%s">
-  </head>
-</html>""" %(url)
-
 
 class Cgi(object):
     """BigBlack cgi utilities module"""
@@ -186,15 +159,16 @@ class View(object):
         tl = TemplateLookup(directories=[tpath],
                             input_encoding="utf-8",
                             output_encoding="utf-8",
-                            default_filters=['decode.utf8'])
-#                            format_exceptions=True)
+                            default_filters=['decode.utf8'],
+                            format_exceptions=True)
 
         t = tl.get_template(template_name)
         vars = self._bb.config.new_dict()
         vars.update(stash)
         vars["DEBUG_MSG"] = self._bb.debugger.debug_string()
         try:
-            return t.render(**vars)
+            print self._bb.http.header()
+            print t.render(**vars)
         except:
             traceback = RichTraceback()
             for (filename, lineno, function, line) in traceback.traceback:
@@ -266,8 +240,37 @@ class BigBlack(object):
         self.view = View(self)
         self.debugger = NullDebugger(self)
 
+# utilities
+    def redirect(self, url):
+        """
+        return redirection HTML code.
 
-#### cgi exection dispatcher functions
+        @param url: redirection url
+        @type url: string
+        """
+        dest = self.config.get_value("app_root") + url
+        print self.http.header()
+        print """<html>
+  <head>
+    <meta http-equiv="refresh" content="0;url=%s">
+  </head>
+</html>""" %(dest)
+
+    def external_redirect(self, url):
+        """
+        return redirection HTML code.
+
+        @param url: redirection url
+        @type url: string
+        """
+        print self.http.header()
+        print """<html>
+  <head>
+    <meta http-equiv="refresh" content="0;url=%s">
+  </head>
+</html>""" %(url)
+
+# cgi exection dispatcher functions
     def run(self):
         if os.environ.get("REQUEST_METHOD") in ("GET", "POST"):
             return self.dispatch.go()

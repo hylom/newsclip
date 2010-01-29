@@ -29,6 +29,7 @@
 import os.path
 import os
 import urllib
+import pickle
 
 _VERSION = "0.1.0.0"
 _DBSTR = "fddb-ver:" + _VERSION
@@ -96,7 +97,7 @@ class FbDb(object):
             if os.path.exists(path):
                 raise TDbError("database %s, key %s is exists." % (database, key))
             f = open(path, "w")
-            f.write(value)
+            pickle.dump(value, f)
             f.close()
         else:
             raise TDbError("database %s is not exists." % database)
@@ -109,7 +110,7 @@ class FbDb(object):
             path = os.path.join(self._db[database], key)
             if os.path.exists(path):
                 f = open(path, "r")
-                ret = f.read()
+                ret = pickle.load(f)
                 f.close()
                 return ret
             else:

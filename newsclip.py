@@ -27,6 +27,7 @@
 """newsclip.py - news clipping system"""
 import cgi
 import cgitb; cgitb.enable()
+import hashlib
 
 from bigblack.bigblack import BigBlack, Debugger
 from bigblack.session import Session
@@ -42,6 +43,7 @@ class NewsClipApp(BigBlack):
         self._db = db
         self.session = Session(db)
 
+# subroutines
     def _login(self):
         uname = self.cgi.getfirst("loginname")
         passwd = self.cgi.getfirst("passwd")
@@ -51,25 +53,24 @@ class NewsClipApp(BigBlack):
             self._setup()
 
     def _setup(self):
-        print self.http.header()
-        t = self.view.render("setup.html", dict(title="newsclip setup"))
-        print t
+        self.view.render("setup.html", dict(title="newsclip setup"))
 
+# handlers
     def h_setup(self):
         if self.cgi.getfirst("setup") != "1":
-            print self.http.header()
-            print self.html.redirect("")
+            print self.redirect("")
             return
 
         uname = self.cgi.getfirst("loginname")
         passwd = self.cgi.getfirst("passwd")
+        
         if uname and passwd:
+            s = hashlib.sha1()
+            s.update(passwd)
+            d = dict(uname=uname, passwd=s.hexdigest())
             self._db.create_db("users")
-            self._db.create("users", uname, passwd)
-
-        print self.http.header()
-        print self.html.redirect("")
-        return
+            self._db.create("users", uname, d)
+        self.redirect("")
 
     def root(self):
         if not self._db.exists("users"):
@@ -78,9 +79,7 @@ class NewsClipApp(BigBlack):
         if self.cgi.getfirst("login") == "1":
             return self._login()
 
-        print self.http.header()
-        t = self.view.render("login.html", dict(title="newsclip login"))
-        print t
+        self.view.render("login.html", dict(title="newsclip login"))
 
 if __name__ == '__main__':
     app = NewsClipApp()
