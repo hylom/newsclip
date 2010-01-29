@@ -73,7 +73,27 @@ class Cgi(object):
         self._bb = bb
         self._form = cgi.FieldStorage()
 
-    def getfirst(self, key):
+    def param(self, key, default=None):
+        return self.getfirst(key, default)
+
+    def getfirst(self, key, default=None):
+        """return CGI parameter.
+
+        @param key: name of parameter
+        @type key: string
+        """
+
+        if os.environ.get("METHOD") in ("GET", "POST"):
+            return default;
+
+        #FIXME: if form's value is large file?
+        try:
+            return self._form.getfirst(key, default)
+        except AttributeError:
+            self._form = cgi.FieldStorage()
+            return self._form.getfirst(key, default)
+
+    def getlist(self, key, default=None):
         """return CGI parameter.
 
         @param key: name of parameter
@@ -85,27 +105,10 @@ class Cgi(object):
 
         #FIXME: if form's value is large file?
         try:
-            return self._form.getfirst(key)
+            return self._form.getlist(key, default)
         except AttributeError:
             self._form = cgi.FieldStorage()
-            return self._form.getfirst(key)
-
-    def getlist(self, key):
-        """return CGI parameter.
-
-        @param key: name of parameter
-        @type key: string
-        """
-
-        if os.environ.get("METHOD") in ("GET", "POST"):
-            return None;
-
-        #FIXME: if form's value is large file?
-        try:
-            return self._form.getlist(key)
-        except AttributeError:
-            self._form = cgi.FieldStorage()
-            return self._form.getlist(key)
+            return self._form.getlist(key, default)
 
     def path_info(self):
         """
