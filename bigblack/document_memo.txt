@@ -1,0 +1,63 @@
+= BigBlackメモ =
+
+== ファイルリスト ==
+ * bigblack.py - コア
+ * fbdb.py ファイルベースのkey-value store型データベース
+ * session.py - セッション管理
+
+== session.py ==
+下記のクラスを定義
+
+ * Session
+
+=== fbdb.py ===
+下記のクラスを定義
+
+ * DbError(Exception)
+ * FbDb
+
+
+=== bigblack.py ===
+下記のクラスを定義
+
+ * Http
+ * Html
+ * Cgi
+ * Config
+ * View
+ * NullDebuger
+ * Debugger(NullDebuger)
+ * Dispatch
+ * BigBlack
+
+
+== コア部分（BigBlack）の設計方針
+
+=== self.hogehogeで各モジュールにアクセスする
+
+||プロパティ名||モジュール||
+||html||Html||
+||http||Http||
+||cgi||Cgi||
+||config||Config
+||dispatch||Dispatch||
+||view||View||
+||debugger||NullDebugger||
+
+これらはすべてbigblack.py内で定義されている。これらを別のモジュールに置き換える場合は__init__内などで適宜標準モジュールのサブクラスのインスタンスを作成してプロパティに割り当てる。
+
+
+== テンプレート周りメモ ==
+
+=== テンプレートエンジンとしてMakoを使用
+文法等はMakoのドキュメント参照。config.pyの「template_dir」で指定したディレクトリがテンプレートの検索パスとなる。テンプレートの文字コードはUTF-8。
+
+=== config.pyで定義された全変数に直接アクセス可能
+
+例えばconfig.py内でconfig["hogehoge"] = "foobar"などと定義されていた場合、${hogehoge}でこの変数にアクセスできる
+
+=== 予約済みテンプレート変数（基本的に大文字）
+
+ * DEBUG_MSG - デバッグメッセージが格納される
+
+
