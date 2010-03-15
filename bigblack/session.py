@@ -26,9 +26,23 @@
 #
 """session.py - session manager"""
 
+import Cookie
+import hashlib
+import time
+
 class Session(object):
     "session manager"
-    def __init__(self, storage):
+    def __init__(self, bb, storage, salt):
+        self._bb = bb
         self._storage = storage
-
-    
+        self._salt = salt
+        
+    def new_session(self, param, expire="None"):
+        c = Cookie.SimpleCookie()
+        
+        s = hashlib.sha1()
+        s.update(self._salt)
+        s.update(time.asctime())
+        c["sid"] = s.hexdigest()
+        c["sid"]["path"]  = "/"
+        self._bb.http.append_header(c.output())

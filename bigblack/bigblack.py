@@ -22,6 +22,7 @@ class Http(object):
     """BigBlack http render module"""
     def __init__(self, bb):
         self._bb = bb
+        self.additional_headers = []
 
     def header(self, ctype="text/html; charset=utf-8"):
         """
@@ -30,9 +31,12 @@ class Http(object):
         @param ctype="text.html": content-type string.
         @type ctype: string
         """
-        return "Content-type: %s\n" %(ctype)
+        add = "\n".join(self.additional_headers)
+        return "Content-type: %s\n" %(ctype) + add
 
- 
+    def append_header(self, header):
+        self.additional_headers.append(header)
+
 class Html(object):
     """BigBlack html render module"""
     def __init__(self, bb):

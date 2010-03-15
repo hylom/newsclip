@@ -41,14 +41,21 @@ class NewsClipApp(BigBlack):
         self.debugger = Debugger(self)
         db = FbDb(self.config.get_dir("storage_dir"))
         self._db = db
-        self.session = Session(db)
+        self.session = Session(self, db, self.config.get_value("session_salt"))
 
 # subroutines
     def _login(self):
-        uname = self.cgi.getfirst("loginname")
-        passwd = self.cgi.getfirst("passwd")
+        uname = self.cgi.param("loginname")
+        passwd = self.cgi.param("passwd")
         if self._db.exists("users"):
-            pass #if uname and passwd:
+            d = self._db.retrive("users", uname, None)
+            if d and d["passwd"] == passwd:
+                # send cookie
+                self.session.new_session("uname")
+                self.redirect("")
+            else:
+                self.view.render("login.html", dict(title="newsclip login",
+                                                    error="error"))
         else:
             self._setup()
 
