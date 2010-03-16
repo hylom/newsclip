@@ -12,17 +12,20 @@
 import htmlelements
 
 class Menu(object):
-    templ = """
-<div class="%(class)s" id="%(id)s">
+    _templ = """
+<div class="%(cls)s" id="%(id)s">
 <ul>
 %(body)s
 </ul>
 </div>
 """
-    def __init__(self, class="menu", id=""):
-        self._class = class
+    def __init__(self, cls="menu", id=""):
+        self._class = cls
         self._id = id
         self._elements = []
+
+    def add_item(self, item):
+        self._elements.append(item)
 
     def add_link(self, text, url, attrs=[]):
         if len(attrs):
@@ -38,7 +41,7 @@ class Menu(object):
         elems = ["<li>" + e + "</li>" for e in self._elements]
         d = dict(body="\n".join(elems),
                  id=self._id,
-                 class=self._class)
-        return templ % d
+                 cls=self._class)
+        return self._templ % d
 
             
