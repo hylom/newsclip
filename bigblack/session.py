@@ -41,12 +41,12 @@ class SimpleSession(Cookie.SimpleCookie):
 
     def __init__(self):
         Cookie.SimpleCookie.__init__(self)
-        h = self.bb.cgi.getenv("HTTP_COOKIE"):
+        h = self.bb.cgi.get_env("HTTP_COOKIE")
         if h:
             self.load(h)
         else:
             s = hashlib.sha1()
-            s.update(self._salt)
+            s.update(self.salt)
             s.update(time.asctime())
             self["sid"] = s.hexdigest()
             self["sid"]["path"]  = "/"
@@ -63,12 +63,15 @@ class Session(SimpleSession):
         cls.salt = salt
         cls.storage = storage
         cls.database = database
-        if not storage.exists(database):
+        if not storage.exists_db(database):
             storage.create_db(database)
 
     def retrive(self, key, default=None):
         return self.storage.retrive(self.database, key, default)
 
     def update(self, key, value):
-        return self.storage.update(self.database, key, value)
+        if self.storage.retrive(self.database, key, None):
+            return self.storage.update(self.database, key, value)
+        else:
+            return self.storage.create(self.database, key, value)
 

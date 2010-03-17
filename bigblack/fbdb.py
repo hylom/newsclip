@@ -46,68 +46,72 @@ class FbDb(object):
     """File-based key-value database."""
     _DB_FILE = ".fbdb"
     def __init__(self, basedir):
-        self._basedir = basedir
+        self._basedir = os.path.abspath(basedir)
         self._db = dict()
         self._lockstate = {}
 
-    def quote(self, str):
+    def _quote(self, str):
         return urllib.quote(str, "")
 
-    def unquote(self, str):
+    def _unquote(self, str):
         return urllib.quote(str)
 
-    def exists(self, database):
+    def _get_db_path(self, database):
+        return os.path.join(self._basedir, self._quote(database))
+
+    def exists_db(self, database):
         """check if given db is exists"""
-        name = self.quote(database)
-        db_path = os.path.join(self._basedir, name)
+        db_path = self._get_db_path(database)
         dbf = os.path.join(db_path, self._DB_FILE)
         return os.path.isfile(dbf)
 
     def create_db(self, database):
         """create new database"""
-        name = self.quote(database)
-        db_path = os.path.join(self._basedir, name)
+        db_path = self._get_db_path(database)
         dbf = os.path.join(db_path, self._DB_FILE)
         if os.path.isfile(dbf):
-            raise TDbError("database %s is exists." % db_path)
+            raise DbError("database %s is exists." % db_path)
         if os.path.exists(db_path):
-            raise TDbError("database %s is exists, and not database." % db_path)
+            raise DbError("database %s is exists, and not database." % db_path)
 
         os.makedirs(db_path)
         f = open(dbf, "w")
         f.write(_DBSTR)
         f.close()
-        self._db[name] = db_path
 
-    def delete_db(self, name):
-        name = self.quote(name)
-        db_path = os.path.join(self._basedir, name)
-        dbf = os.path.join(db_path, self._DB_FILE)
-        if os.path.isfile(dbf):
-            os.removedirs(db_path)
+    def delete_db(self, database):
+        if self.exists_db(database):
+            db_path = self._get_db_path(database)
+            dbf = os.path.join(db_path, self._DB_FILE)
+            """TODO:"""
+            if os.path.isfile(dbf):
+                os.removedirs(db_path)
         else:
-            raise TDbError("database %s is not exists or not database." % db_path)
+            raise DbError("database %s is not exists or not database." % db_path)
+
+    def query_keys(self, key="*"):
+        """"TODO:"""
+        pass
 
     def create(self, database, key, value):
         """create item with key and value to database."""
-        database = self.quote(database)
-        key = self.quote(key)
-        if database in self._db:
-            path = os.path.join(self._db[database], key)
+        db_path = self._get_db_path(database)
+        if self.exists_db(database):
+            db_path = self._get_db_path(database)
+            path = os.path.join(db_path, key)
             if os.path.exists(path):
-                raise TDbError("database %s, key %s is exists." % (database, key))
+                raise DbError("database %s, key %s is exists." % (database, key))
             f = open(path, "w")
             pickle.dump(value, f)
             f.close()
         else:
-            raise TDbError("database %s is not exists." % database)
+            raise DbError("database %s is not exists." % database)
 
     def retrive(self, database, key, default=None):
         """retrive item with key."""
-        database = self.quote(database)
-        key = self.quote(key)
-        if database in self._db:
-            path = os.path.join(self._db[database], key)
+        if self.exists_db(database):
+            db_path = self._get_db_path(database)
+            path = os.path.join(db_path, key)
             if os.path.exists(path):
                 f = open(path, "r")
                 ret = pickle.load(f)
@@ -116,35 +120,33 @@ class FbDb(object):
             else:
                 return default
         else:
-            raise TDbException("database %s is not exists." % database)
+            raise DbError("database %s is not exists." % database)
 
     def update(self, database, key, value):
         """update item with key and value to database."""
-        database = self.quote(database)
-        key = self.quote(key)
-        if database in self._db:
-            path = os.path.join(self._db[database], key)
+        if self.exists_db(database):
+            db_path = self._get_db_path(database)
+            path = os.path.join(db_path, key)
             if os.path.exists(path):
                 f = open(path, "w")
                 f.write(value)
                 f.close()
             else:
-                raise TDbException("database %s, key %s is not exists." % (database, key))
+                raise DbError("key %s is not exists, in database %s." % (key, database))
         else:
-            raise TDbException("database %s is not exists." % database)
+            raise DbError("database %s is not exists. path: %s" % database)
                
     def delete(self, database, key, default=None):
         """delete item in given database."""
-        database = self.quote(database)
-        key = self.quote(key)
-        if database in self._db:
-            path = os.path.join(self._db[database], key)
+        if self.exists_db(database):
+            db_path = self._get_db_path(database)
+            path = os.path.join(db_path, key)
             if os.path.exists(path):
                 os.remove(path)
             else:
-                raise TDbException("database %s, key %s is not exists." % (database, key))
+                raise DbError("database %s, key %s is not exists." % (database, key))
         else:
-            raise TDbException("database %s is not exists." % database)
+            raise DbError("database %s is not exists." % database)
 
     def lock(self, database):
         pass
