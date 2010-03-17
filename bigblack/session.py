@@ -30,19 +30,45 @@ import Cookie
 import hashlib
 import time
 
-class Session(object):
-    "session manager"
-    def __init__(self, bb, storage, salt):
-        self._bb = bb
-        self._storage = storage
-        self._salt = salt
-        
-    def new_session(self, param, expire="None"):
-        c = Cookie.SimpleCookie()
-        
-        s = hashlib.sha1()
-        s.update(self._salt)
-        s.update(time.asctime())
-        c["sid"] = s.hexdigest()
-        c["sid"]["path"]  = "/"
-        self._bb.http.append_header(c.output())
+class SimpleSession(Cookie.SimpleCookie):
+    "session object"
+    bb = None
+    salt = None
+    @classmethod
+    def init(cls, bb, salt):
+        cls.bb = bb
+        cls.salt = salt
+
+    def __init__(self):
+        Cookie.SimpleCookie.__init__(self)
+        h = self.bb.cgi.getenv("HTTP_COOKIE"):
+        if h:
+            self.load(h)
+        else:
+            s = hashlib.sha1()
+            s.update(self._salt)
+            s.update(time.asctime())
+            self["sid"] = s.hexdigest()
+            self["sid"]["path"]  = "/"
+
+    def save(self):
+        self.bb.http.append_header(self.output())
+
+
+class Session(SimpleSession):
+    "database associated session"
+    @classmethod
+    def init(cls, bb, salt, storage, database):
+        cls.bb = bb
+        cls.salt = salt
+        cls.storage = storage
+        cls.database = database
+        if not storage.exists(database):
+            storage.create_db(database)
+
+    def retrive(self, key, default=None):
+        return self.storage.retrive(self.database, key, default)
+
+    def update(self, key, value):
+        return self.storage.update(self.database, key, value)
+

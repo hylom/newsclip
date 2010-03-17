@@ -56,16 +56,16 @@ class FbDb(object):
     def unquote(self, str):
         return urllib.quote(str)
 
-    def exists(self, name):
+    def exists(self, database):
         """check if given db is exists"""
-        name = self.quote(name)
+        name = self.quote(database)
         db_path = os.path.join(self._basedir, name)
         dbf = os.path.join(db_path, self._DB_FILE)
         return os.path.isfile(dbf)
 
-    def create_db(self, name):
+    def create_db(self, database):
         """create new database"""
-        name = self.quote(name)
+        name = self.quote(database)
         db_path = os.path.join(self._basedir, name)
         dbf = os.path.join(db_path, self._DB_FILE)
         if os.path.isfile(dbf):

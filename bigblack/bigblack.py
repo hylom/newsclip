@@ -77,6 +77,9 @@ class Cgi(object):
         self._bb = bb
         self._form = cgi.FieldStorage()
 
+    def get_env(self, key, default=None):
+        return os.environ.get(key, default)
+
     def param(self, key, default=None):
         return self.getfirst(key, default)
 
