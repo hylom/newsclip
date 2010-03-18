@@ -30,6 +30,7 @@ import os.path
 import os
 import urllib
 import pickle
+import dircache
 
 _VERSION = "0.1.0.0"
 _DBSTR = "fddb-ver:" + _VERSION
@@ -82,14 +83,21 @@ class FbDb(object):
     def delete_db(self, database):
         if self.exists_db(database):
             db_path = self._get_db_path(database)
+            for f in dircache.listdir(db_path):
+                path = os.path.join(db_path, f)
+                if os.path.isfile(path):
+                    os.remove(path)
+
             dbf = os.path.join(db_path, self._DB_FILE)
-            """TODO:"""
-            if os.path.isfile(dbf):
-                os.removedirs(db_path)
+            os.removedirs(db_path)
         else:
             raise DbError("database %s is not exists or not database." % db_path)
 
-    def query_keys(self, key="*"):
+    def simple_scan(self, key):
+        """"TODO:"""
+        pass
+
+    def regex_scan(self, key):
         """"TODO:"""
         pass
 
