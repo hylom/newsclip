@@ -9,6 +9,18 @@
 #######################################################################
 """htmlelements: HTML Elements utilitiesk"""
 
+def build_attrs(attrs):
+    """attrs: tuple contents (attribute, value)"""
+    items = [tag,]
+    for (attr, val) in attrs:
+        if val:
+            t = "%s='%s'" % (attr, val)
+        else:
+            t = attr
+        items.append(t)
+    return " ".join(items)
+
+
 def build_begin_tag(tag, attrs):
     """
     tag: HTML tagname
